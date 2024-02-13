@@ -35,12 +35,16 @@ contract Exchange is ReentrancyGuard {
             revert InvalidPayment();
 
         // Price should be in [wei / NFT]
+        // @audit how can we manipulate this price
+        // @note initial price is 999 ETH
         uint256 price = oracle.getMedianPrice(token.symbol());
         if (msg.value < price)
             revert InvalidPayment();
 
         id = token.safeMint(msg.sender);
         unchecked {
+            // @note senders change is returned
+            // @audit external interaction
             payable(msg.sender).sendValue(msg.value - price);
         }
 
@@ -55,6 +59,7 @@ contract Exchange is ReentrancyGuard {
             revert TransferNotApproved();
 
         // Price should be in [wei / NFT]
+        // @audit how can we manipulate this price
         uint256 price = oracle.getMedianPrice(token.symbol());
         if (address(this).balance < price)
             revert NotEnoughFunds();
@@ -68,4 +73,11 @@ contract Exchange is ReentrancyGuard {
     }
 
     receive() external payable {}
+
+    /* @q How can we sell our NFT to the contract for higher price than we bought?
+    - How can we buy this NFT for $0
+    - How can we manipulate the price of this NFT to increase or decrease at our will?
+
+    */
+
 }

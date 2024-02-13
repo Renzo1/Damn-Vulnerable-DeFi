@@ -66,6 +66,8 @@ contract SelfiePool is ReentrancyGuard, IERC3156FlashLender {
         return true;
     }
 
+    // @audit how can I get this function to with my address as the receiver
+    // - Take control of the governance contract. How to?
     function emergencyExit(address receiver) external onlyGovernance {
         uint256 amount = token.balanceOf(address(this));
         token.transfer(receiver, amount);

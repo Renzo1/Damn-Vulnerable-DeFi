@@ -49,14 +49,18 @@ contract TheRewarderPool {
      *         Also distributes rewards if available.
      * @param amount amount of tokens to be deposited
      */
+    // @note value ratio of liquidity tokens to accounting tokens is 1 : 1
     function deposit(uint256 amount) external {
         if (amount == 0) {
             revert InvalidDepositAmount();
         }
 
+        // @note mint caller amount of accounting tokens
         accountingToken.mint(msg.sender, amount);
+        // @note distribute Rewards
         distributeRewards();
 
+        // @note transfer liquidity tokens to this contract
         SafeTransferLib.safeTransferFrom(
             liquidityToken,
             msg.sender,
@@ -65,12 +69,18 @@ contract TheRewarderPool {
         );
     }
 
+
     function withdraw(uint256 amount) external {
+        // @note first burns amount of accounting tokens from callers account
         accountingToken.burn(msg.sender, amount);
+
+        // @note then releases liquidity token to caller
         SafeTransferLib.safeTransfer(liquidityToken, msg.sender, amount);
     }
 
-    function distributeRewards() public returns (uint256 rewards) {
+    function distributeRewards() public returns (uint256 rewards){
+        // @note isNewRewardsRound checks if its time to distribute rewards
+        // @note if true is returned, a new snapshot is taken to make the start of a new reward round
         if (isNewRewardsRound()) {
             _recordSnapshot();
         }
@@ -103,6 +113,9 @@ contract TheRewarderPool {
     }
 
     function isNewRewardsRound() public view returns (bool) {
+        // @note every reward round last a max of 5days
+        // if the difference between the current time and the last reward round is than less 5days
+        // false is returned, else true is returned
         return block.timestamp >= lastRecordedSnapshotTimestamp + REWARDS_ROUND_MIN_DURATION;
     }
 }

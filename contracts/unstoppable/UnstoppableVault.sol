@@ -18,6 +18,8 @@ contract UnstoppableVault is IERC3156FlashLender, ReentrancyGuard, Owned, ERC462
     uint256 public constant FEE_FACTOR = 0.05 ether;
     uint64 public constant GRACE_PERIOD = 30 days;
 
+    // @audit block.timestamp here points to the time of deployment
+    // thus, the `end` variable doesn't update with the protocol
     uint64 public immutable end = uint64(block.timestamp) + GRACE_PERIOD;
 
     address public feeRecipient;
@@ -41,6 +43,7 @@ contract UnstoppableVault is IERC3156FlashLender, ReentrancyGuard, Owned, ERC462
      * @inheritdoc IERC3156FlashLender
      */
     function maxFlashLoan(address _token) public view returns (uint256) {
+        // @audit zero is also a value
         if (address(asset) != _token)
             return 0;
 
@@ -54,6 +57,8 @@ contract UnstoppableVault is IERC3156FlashLender, ReentrancyGuard, Owned, ERC462
         if (address(asset) != _token)
             revert UnsupportedCurrency();
 
+        // @audit block.timestamp < end is the end of grace period i.e. 30days
+        // @audit insert _amount > and the correct _token address to pass condition
         if (block.timestamp < end && _amount < maxFlashLoan(_token)) {
             return 0;
         } else {
@@ -73,6 +78,8 @@ contract UnstoppableVault is IERC3156FlashLender, ReentrancyGuard, Owned, ERC462
      */
     function totalAssets() public view override returns (uint256) {
         assembly { // better safe than sorry
+            // @audit when a function with nonReentrant modifier is called, slot0 (var locked) is set to 2
+            // This function can only reverts if you try to reenter into it
             if eq(sload(0), 2) {
                 mstore(0x00, 0xed3ba6a6)
                 revert(0x1c, 0x04)
@@ -93,7 +100,11 @@ contract UnstoppableVault is IERC3156FlashLender, ReentrancyGuard, Owned, ERC462
         if (amount == 0) revert InvalidAmount(0); // fail early
         if (address(asset) != _token) revert UnsupportedCurrency(); // enforce ERC3156 requirement
         uint256 balanceBefore = totalAssets();
+
+        // @audit How can I condition to pass?
+        // @audit strict condition. What happens if I send some tokens to this contract
         if (convertToShares(totalSupply) != balanceBefore) revert InvalidBalance(); // enforce ERC4626 requirement
+
         uint256 fee = flashFee(_token, amount);
         // transfer tokens out + execute callback on receiver
         ERC20(_token).safeTransfer(address(receiver), amount);

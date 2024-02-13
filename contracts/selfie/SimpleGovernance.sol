@@ -2,8 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "../DamnValuableTokenSnapshot.sol";
-import "./ISimpleGovernance.sol"
-;
+import "./ISimpleGovernance.sol";
 /**
  * @title SimpleGovernance
  * @author Damn Vulnerable DeFi (https://damnvulnerabledefi.xyz)
@@ -20,18 +19,26 @@ contract SimpleGovernance is ISimpleGovernance {
         _actionCounter = 1;
     }
 
+    // @note returns actionId and msg.sender
     function queueAction(address target, uint128 value, bytes calldata data) external returns (uint256 actionId) {
+        // @note caller need enough votes to queue _actions
+        // "enough votes" == >half total supply of _governanceToken at last snapshot
+        // how is snapshot updated?
+
         if (!_hasEnoughVotes(msg.sender))
             revert NotEnoughVotes(msg.sender);
 
+        // @note target can't be this contract
         if (target == address(this))
             revert InvalidTarget();
-        
+
+        // @note target must be a smart contract
         if (data.length > 0 && target.code.length == 0)
             revert TargetMustHaveCode();
 
         actionId = _actionCounter;
 
+        // @note queue action
         _actions[actionId] = GovernanceAction({
             target: target,
             value: value,
@@ -89,6 +96,7 @@ contract SimpleGovernance is ISimpleGovernance {
      * 1) it's never been executed before and
      * 2) enough time has passed since it was first proposed
      */
+    // @note enough time means atleast ACTION_DELAY_IN_SECONDS has passed
     function _canBeExecuted(uint256 actionId) private view returns (bool) {
         GovernanceAction memory actionToExecute = _actions[actionId];
         

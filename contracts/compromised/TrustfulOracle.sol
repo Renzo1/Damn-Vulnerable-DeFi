@@ -27,6 +27,7 @@ contract TrustfulOracle is AccessControlEnumerable {
             revert NotEnoughSources();
         for (uint256 i = 0; i < sources.length;) {
             unchecked {
+                // @audit how can I set this role to any random address?
                 _setupRole(TRUSTED_SOURCE_ROLE, sources[i]);
                 ++i;
             }
@@ -60,6 +61,9 @@ contract TrustfulOracle is AccessControlEnumerable {
     }
 
     function getAllPricesForSymbol(string memory symbol) public view returns (uint256[] memory prices) {
+        // @q can I add a new trusted source
+        // and provide inaccurate prices through that source?
+        //
         uint256 numberOfSources = getRoleMemberCount(TRUSTED_SOURCE_ROLE);
         prices = new uint256[](numberOfSources);
         for (uint256 i = 0; i < numberOfSources;) {
@@ -81,13 +85,19 @@ contract TrustfulOracle is AccessControlEnumerable {
 
     function _computeMedianPrice(string memory symbol) private view returns (uint256) {
         uint256[] memory prices = getAllPricesForSymbol(symbol);
+        // @q what does this do? and why isn't the result cached?
+        // @audit does matter in this scenario cause they all return thesame prices
         LibSort.insertionSort(prices);
         if (prices.length % 2 == 0) {
             uint256 leftPrice = prices[(prices.length / 2) - 1];
             uint256 rightPrice = prices[prices.length / 2];
             return (leftPrice + rightPrice) / 2;
         } else {
-            return prices[prices.length / 2];
+            return prices[prices.length / 2]; // 3/2 = 1
         }
     }
+
+    /*
+    - How can I make prices[1] (median price) return zero
+    */
 }

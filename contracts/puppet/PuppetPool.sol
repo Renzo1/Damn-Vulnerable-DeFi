@@ -31,6 +31,7 @@ contract PuppetPool is ReentrancyGuard {
 
     // Allows borrowing tokens by first depositing two times their value in ETH
     function borrow(uint256 amount, address recipient) external payable nonReentrant {
+        // @audit how to manipulate depositRequired
         uint256 depositRequired = calculateDepositRequired(amount);
 
         if (msg.value < depositRequired)
@@ -59,6 +60,14 @@ contract PuppetPool is ReentrancyGuard {
 
     function _computeOraclePrice() private view returns (uint256) {
         // calculates the price of the token in wei according to Uniswap pair
+        // @audit reliance on uniswap for price oracle
         return uniswapPair.balance * (10 ** 18) / token.balanceOf(uniswapPair);
     }
+
+    /*
+    - First destabilize the uniswapPair pool
+    - The lower the return value for _computeOraclePrice(), the better
+    - The higher the uniswapPair DVT token balance, the lower the return value for _computeOraclePrice()
+    -
+    */
 }
